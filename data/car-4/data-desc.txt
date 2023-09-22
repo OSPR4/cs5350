@@ -1,9 +1,7 @@
 | label values
-
 unacc, acc, good, vgood
 
 | attributes
-
 buying:   vhigh, high, med, low.
 maint:    vhigh, high, med, low.
 doors:    2, 3, 4, 5more.
