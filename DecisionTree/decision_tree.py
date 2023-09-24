@@ -1,25 +1,23 @@
 import pandas as pd
+import copy
 from decision_tree_node import DecisionTreeNode
 from information_gain import information_gain_entropy, information_gain_gini, information_gain_me
 
 class DecisionTree:
     def __init__(self, info_gain_variant='entropy', max_depth=None):
-        #todo: add max depth and information gain type
         self.root = None
-        # self.data_set = None
-        # self.attributes = {}
-        # self.labels = None
         self.info_gain_variant = info_gain_variant
         self.max_depth = max_depth
         self.current_depth = 0
 
     def fit(self, data_set, attributes, labels):
-        # Check for numeric attributes
-        for attribute in attributes:
-            if 'numeric' in attributes[attribute]:
-                self.handle_numeric_attribute(data_set, attribute, attributes)
+        dt_attributes = copy.deepcopy(attributes)
+        dt_data_set = copy.deepcopy(data_set)
+        for attribute in dt_attributes:
+            if 'numeric' in dt_attributes[attribute]:
+                self.handle_numeric_attribute(dt_data_set, attribute, dt_attributes)
 
-        self.root = self.build_tree_id3(data_set, attributes, labels, curr_depth=0)
+        self.root = self.build_tree_id3(dt_data_set, dt_attributes, labels, curr_depth=0)
 
 
     def handle_numeric_attribute(self, data_set, attribute, attributes):
@@ -31,15 +29,16 @@ class DecisionTree:
 
     def predict(self, data_set, attributes):
         if self.root:
-            # Check for numeric attributes
-            for attribute in attributes:
-                if 'numeric' in attributes[attribute]:
-                    self.handle_numeric_attribute(data_set, attribute, attributes)
+            dt_attributes = copy.deepcopy(attributes)
+            dt_data_set = copy.deepcopy(data_set)
+            for attribute in dt_attributes:
+                if 'numeric' in dt_attributes[attribute]:
+                    self.handle_numeric_attribute(dt_data_set, attribute, dt_attributes)
             
-            labels = pd.DataFrame({'label': []})
-            for index, row in data_set.iterrows():
-                labels.loc[index] = self.predict_row(row, self.root)
-            return labels
+            predicted_labels = pd.DataFrame({'label': []})
+            for index, row in dt_data_set.iterrows():
+                predicted_labels.loc[index] = self.predict_row(row, self.root)
+            return predicted_labels
 
 
     def predict_row(self, row, node):
@@ -52,7 +51,7 @@ class DecisionTree:
 
 
     def get_best_attribute(self, data_set, attributes, labels):
-        if self.info_gain_variant == 'mg':
+        if self.info_gain_variant == 'me':
             return information_gain_me(data_set, attributes, labels)
         elif self.info_gain_variant == 'gini':
             return information_gain_gini(data_set, attributes, labels)
@@ -62,30 +61,37 @@ class DecisionTree:
 
     # ID3 algorithm
     def build_tree_id3(self, data_set, attributes, labels, curr_depth):
-        # self.data_set = data_set
-        # self.attributes = attributes
-        # self.labels = labels
         self.current_depth = curr_depth
         label_name = data_set.columns[-1]
-        if len(set(labels)) == 1: # If all examples have the same label, return a leaf node with that label
+        if len(set(labels)) == 1: 
             similar_label = labels.iloc[0]
             return DecisionTreeNode(label=similar_label)
-        elif len(attributes) == 0:  # If attributes is empty, return a leaf node with the most common label
+        elif len(attributes) == 0:  
             most_common_label = labels.value_counts().idxmax()
             return DecisionTreeNode(label=most_common_label)
         else:
             root = DecisionTreeNode()
             best_attribute = self.get_best_attribute(data_set, attributes, labels)
             root.attribute = best_attribute
-            for attribute_value in attributes[best_attribute]:
-                attribute_value_subset = data_set[data_set[best_attribute] == attribute_value] ## 
-                if len(attribute_value_subset) == 0: # If attribute_value_subset is empty, add a leaf node with the most common label in the data_set
-                    # most_common_label = self.most_common_label(data_set.label)
-                    most_common_label = labels.value_counts().idxmax()
-                    root.add_child(attribute_value, DecisionTreeNode(label=most_common_label))
-                else:
-                    updated_attributes = attributes.copy()
-                    del updated_attributes[best_attribute]
-                    sub_tree = self.build_tree_id3(attribute_value_subset, updated_attributes, attribute_value_subset[label_name], curr_depth+1)
-                    root.add_child(attribute_value, sub_tree)
+
+            if curr_depth + 1 == self.max_depth:
+                for attribute_value in attributes[best_attribute]:
+                    attribute_value_subset = data_set[data_set[best_attribute] == attribute_value]
+                    if len(attribute_value_subset) == 0:
+                        most_common_label = labels.value_counts().idxmax()
+                        root.add_child(attribute_value, DecisionTreeNode(label=most_common_label))
+                    else:
+                        most_freq_label = attribute_value_subset[label_name].value_counts().idxmax()
+                        root.add_child(attribute_value, DecisionTreeNode(label=most_freq_label))
+            else:
+                for attribute_value in attributes[best_attribute]:
+                    attribute_value_subset = data_set[data_set[best_attribute] == attribute_value] ## 
+                    if len(attribute_value_subset) == 0: 
+                        most_common_label = labels.value_counts().idxmax()
+                        root.add_child(attribute_value, DecisionTreeNode(label=most_common_label))
+                    else:
+                        updated_attributes = attributes.copy()
+                        del updated_attributes[best_attribute]
+                        sub_tree = self.build_tree_id3(attribute_value_subset, updated_attributes, attribute_value_subset[label_name], curr_depth+1)
+                        root.add_child(attribute_value, sub_tree)
             return root
