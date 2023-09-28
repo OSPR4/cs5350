@@ -4,8 +4,12 @@ import copy
 from decision_tree import DecisionTree
 
 
-# 2. [30 points] We will implement a decision tree learning algorithm for car evaluation task.
-print('2. [30 points] We will implement a decision tree learning algorithm for car evaluation task.')
+
+#2. (b) [10 points]
+#Use your implemented algorithm to learn decision trees from the training data. 
+# Vary the maximum tree depth from 1 to 6 — for each setting, run your algorithm to learn a decision tree, 
+# and use the tree to predict both the training and test examples.
+
 car_attributes = {}
 column_names = []
 
@@ -32,64 +36,58 @@ car_testing_data = pd.read_csv('data/car-4/test.csv', header=None, names=column_
 car_training_labels = car_training_data.iloc[:, -1]
 car_testing_labels = car_testing_data.iloc[:, -1]
 
-# 2. (b) [10 points] Use your implemented algorithm to learn decision trees from the training data.
-print('2. (b) [10 points] Use your implemented algorithm to learn decision trees from the training data.')
-
 # Build different decision trees with different max_depth
-decision_trees = {}
-print('Building Decision Trees with depth 1 to 6')
-for max_depth in range(1, 7):
-    print('Build Tree with Max Depth: ', max_depth)
-    decision_tree = DecisionTree(max_depth=max_depth)
-    decision_tree.fit(car_training_data, car_attributes, car_training_labels)
-    decision_trees[max_depth] = copy.deepcopy(decision_tree)
-
-# Test decision trees with different max_depth on testing and training data
+car_decision_trees = {}
+dt_car_variants = {}
 variants = ['entropy', 'me', 'gini']
-decision_trees_errors_train = {}
-decision_trees_errors_test = {}
-for max_depth in range(1, 7):
-    print('Testing Tree with Max Depth: ', max_depth)
-    decision_tree = decision_trees[max_depth]
+for variant in variants:
+    print('Building Decision Trees with depth 1 to 6 (variant: ', variant, ')')
+    for max_depth in range(1, 7):
+        print('Build Tree with Max Depth: ', max_depth)
+        decision_tree = DecisionTree(info_gain_variant=variant, max_depth=max_depth)
+        decision_tree.fit(car_training_data, car_attributes, car_training_labels)
+        car_decision_trees[max_depth] = copy.deepcopy(decision_tree)
+    dt_car_variants[variant] = copy.deepcopy(car_decision_trees)
+
+##
+car_restults_train = {}
+car_restults_test = {}
+
+for variant in dt_car_variants:
     total_error_train = 0
     total_error_test = 0
-    
-    for variant in variants:
-        print('                         Testing Tree with Variant: ', variant)
-        decision_tree.info_gain_variant = variant
-        predictions_train = decision_tree.predict(car_training_data, car_attributes)
-        predictions_test = decision_tree.predict(car_testing_data, car_attributes)
-
-        error_train = (predictions_train.label != car_training_labels).sum() / len(car_training_labels)
-        error_test = (predictions_test.label != car_testing_labels).sum() / len(car_testing_labels)
-
+    print('Testing Tree with Variant: ', variant)
+    for max_depth in dt_car_variants[variant]:
+        print('                         Testing Tree with Max Depth: ', max_depth)
+        dt = dt_car_variants[variant][max_depth]
+        prediction_train = dt.predict(car_training_data, car_attributes)
+        prediction_test = dt.predict(car_testing_data, car_attributes)
+        error_train = (prediction_train.label != car_training_labels).sum() / len(car_training_labels)
+        error_test = (prediction_test.label != car_testing_labels).sum() / len(car_testing_labels)
         total_error_train += error_train
         total_error_test += error_test
-    decision_trees_errors_train[max_depth] = total_error_train / len(variants)
-    decision_trees_errors_test[max_depth] = total_error_test / len(variants)
-    
+    car_restults_train[variant] = total_error_train / len(dt_car_variants[variant])
+    car_restults_test[variant] = total_error_test / len(dt_car_variants[variant])
 
 
-# Create a dataframe with the errors
-df_train = pd.DataFrame({'Max Depth': list(decision_trees_errors_train.keys()), ' Error': list(decision_trees_errors_train.values())})
-df_train.set_index('Max Depth', inplace=True)
+dt_car_restults_train = pd.DataFrame({'Heuristic': list(car_restults_train.keys()), 'Average Error': list(car_restults_train.values())})
+dt_car_restults_train.columns = ['Heuristic', 'Average Error (Train)']
 
-df_test = pd.DataFrame({'Max Depth': list(decision_trees_errors_test.keys()), ' Error': list(decision_trees_errors_test.values())})
-df_test.set_index('Max Depth', inplace=True)
+dt_car_restults_test = pd.DataFrame({'Heuristic': list(car_restults_test.keys()), 'Average Error': list(car_restults_test.values())})
+dt_car_restults_test.columns = ['Heuristic', 'Average Error (Test)']
 
-print('Average Error vs Max Depth: Training')
-print(df_train, '\n')
-print('Average Error vs Max Depth: Testing')
-print(df_test, '\n')
+##change heuristics column names entropy -> Information Gain, me -> Majority Error, gini -> Gini Index
+dt_car_restults_train['Heuristic'] = dt_car_restults_train['Heuristic'].replace(['entropy', 'me', 'gini'], ['Information Gain', 'Majority Error', 'Gini Index'])
 
-# plot_train = df_train.plot(kind='bar', title='Error vs Max Depth: Training', grid=False, legend=False, xlabel='Max Depth', ylabel='Error')
-# # plot_train.grid(axis='x')
+dt_car_restults_test['Heuristic'] = dt_car_restults_test['Heuristic'].replace(['entropy', 'me', 'gini'], ['Information Gain', 'Majority Error', 'Gini Index'])
 
-# plot_test = df_test.plot(kind='bar', title='Error vs Max Depth: Testing', grid=False, legend=False, xlabel='Max Depth', ylabel='Error')
 
-#3. [25 points] Next, modify your implementation a little bit to support numerical attributes. 
-print('3. [25 points] Next, modify your implementation a little bit to support numerical attributes.')
 
+
+# 3. (a) [10 points] Let us consider “unknown” as a particular attribute value, 
+# and hence we do not have any missing attributes for both training and test. 
+# Vary the maximum tree depth from 1 to 16 — for each setting, run your algorithm to 
+# learn a decision tree, and use the tree to predict both the training and test examples.
 
 bank_column_names = ['age', 'job', 'marital', 'education', 'default', 'balance', 'housing', 'loan', 'contact', 'day', 'month', 'duration', 'campaign', 'pdays', 'previous', 'poutcome', 'y']
 bank_attributes = {
@@ -117,61 +115,54 @@ bank_testing_data = pd.read_csv('data/bank-4/test.csv', names=bank_column_names)
 bank_training_labels = bank_training_data.iloc[:, -1]
 bank_testing_labels = bank_testing_data.iloc[:, -1]
 
-# 3. (a) [10 points] Let us consider “unknown” as a particular attribute value, and hence we do not have any missing attributes for both training and test. 
 
+# Build different decision trees with different max_depth
 bank_decision_trees = {}
-print('Building Decision Trees with depth 1 to 16')
-for max_depth in range(1, 17):
-    print('Build Tree with Max Depth: ', max_depth)
-    decision_tree = DecisionTree(max_depth=max_depth)
-    decision_tree.fit(bank_training_data, bank_attributes, bank_training_labels)
-    bank_decision_trees[max_depth] = copy.deepcopy(decision_tree)
-
-# Test decision trees with different max_depth on testing and training data
-bank_variants = ['entropy', 'me', 'gini']
-bank_decision_trees_errors_train = {}
-bank_decision_trees_errors_test = {}
-for max_depth in range(1, 17):
-    print('Testing Tree with Max Depth: ', max_depth)
-    decision_tree = bank_decision_trees[max_depth]
-    bank_total_error_train = 0
-    bank_total_error_test = 0
-
-    for variant in bank_variants:
-        print('                         Testing Tree with Variant: ', variant)
-        decision_tree.info_gain_variant = variant
-        bank_predictions_train = decision_tree.predict(bank_training_data, bank_attributes)
-        bank_predictions_test = decision_tree.predict(bank_testing_data, bank_attributes)
-
-        bank_error_train = (bank_predictions_train.label != bank_training_labels).sum() / len(bank_training_labels)
-        bank_error_test = (bank_predictions_test.label != bank_testing_labels).sum() / len(bank_testing_labels)
-
-        bank_total_error_train += bank_error_train
-        bank_total_error_test += bank_error_test
-    bank_decision_trees_errors_train[max_depth] = bank_total_error_train / len(bank_variants)
-    bank_decision_trees_errors_test[max_depth] = bank_total_error_test / len(bank_variants)
-    
+dt_bank_variants = {}
+variants = ['entropy', 'me', 'gini']
+for variant in variants:
+    print('Building Decision Trees with depth 1 to 16 (variant: ', variant, ')')
+    for max_depth in range(1, 17):
+        print('Build Tree with Max Depth: ', max_depth)
+        decision_tree = DecisionTree(info_gain_variant=variant, max_depth=max_depth)
+        decision_tree.fit(bank_training_data, bank_attributes, bank_training_labels)
+        bank_decision_trees[max_depth] = copy.deepcopy(decision_tree)
+    dt_bank_variants[variant] = copy.deepcopy(bank_decision_trees)
 
 
-# Create a dataframe with the errors
-df_bank_train = pd.DataFrame({'Max Depth': list(bank_decision_trees_errors_train.keys()), ' Error': list(bank_decision_trees_errors_train.values())})
-df_bank_train.set_index('Max Depth', inplace=True)
 
-df_bank_test = pd.DataFrame({'Max Depth': list(bank_decision_trees_errors_test.keys()), ' Error': list(bank_decision_trees_errors_test.values())})
-df_bank_test.set_index('Max Depth', inplace=True)
+bank_restults_train = {}
+bank_restults_test = {}
 
-print('Average Error vs Max Depth: Training')
-print(df_bank_train, '\n')
-print('Average Error vs Max Depth: Testing')
-print(df_bank_test, '\n')
+for variant in dt_bank_variants:
+    total_error_train = 0
+    total_error_test = 0
+    print('Testing Tree with Variant: ', variant)
+    for max_depth in dt_bank_variants[variant]:
+        print('                         Testing Tree with Max Depth: ', max_depth)
+        dt = dt_bank_variants[variant][max_depth]
+        bank_prediction_train = dt.predict(bank_training_data, bank_attributes)
+        bank_prediction_test = dt.predict(bank_testing_data, bank_attributes)
+        error_train = (bank_prediction_train.label != bank_training_labels).sum() / len(bank_training_labels)
+        error_test = (bank_prediction_test.label != bank_testing_labels).sum() / len(bank_testing_labels)
+        total_error_train += error_train
+        total_error_test += error_test
+    bank_restults_train[variant] = total_error_train / len(dt_bank_variants[variant])
+    bank_restults_test[variant] = total_error_test / len(dt_bank_variants[variant])
 
-# plot_bank_train = df_bank_train.plot(kind='bar', title='Error vs Max Depth: Training', grid=False, legend=False, xlabel='Max Depth', ylabel='Error')
-# # plot_bank_train.grid(axis='x')
+dt_bank_restults_train = pd.DataFrame({'Heuristic': list(bank_restults_train.keys()), 'Average Error': list(bank_restults_train.values())})
+dt_bank_restults_train.columns = ['Heuristic', 'Average Error (Train)']
 
-# plot_bank_test = df_bank_test.plot(kind='bar', title='Error vs Max Depth: Testing', grid=False, legend=False, xlabel='Max Depth', ylabel='Error')
+dt_bank_restults_test = pd.DataFrame({'Heuristic': list(bank_restults_test.keys()), 'Average Error': list(bank_restults_test.values())})
+dt_bank_restults_test.columns = ['Heuristic', 'Average Error (Test)']
 
-#3. (b) [10 points] Let us consider ”unknown” as attribute value missing.
-print('3. (b) [10 points] Let us consider ”unknown” as attribute value missing.')
+dt_bank_restults_train['Heuristic'] = dt_bank_restults_train['Heuristic'].replace(['entropy', 'me', 'gini'], ['Information Gain', 'Majority Error', 'Gini Index'])
+dt_bank_restults_test['Heuristic'] = dt_bank_restults_test['Heuristic'].replace(['entropy', 'me', 'gini'], ['Information Gain', 'Majority Error', 'Gini Index'])
+
+
+
+
+# 3. (b) [10 points] Let us consider ”unknown” as attribute value missing.
 bank_attributes_2 = copy.deepcopy(bank_attributes)
 
 bank_training_data_2 = copy.deepcopy(bank_training_data)
@@ -196,69 +187,61 @@ for attribute in bank_attributes_2:
     if 'unknown' in bank_attributes_2[attribute]:
         bank_attributes_2[attribute].remove('unknown')
 
+# Build different decision trees with different max_depth
 bank_decision_trees_2 = {}
-print('Building Decision Trees with depth 1 to 16')
-for max_depth in range(1, 17):
-    print('Build Tree with Max Depth: ', max_depth)
-    decision_tree = DecisionTree(max_depth=max_depth)
-    decision_tree.fit(bank_training_data_2, bank_attributes_2, bank_training_labels_2)
-    bank_decision_trees_2[max_depth] = copy.deepcopy(decision_tree)
+dt_bank_variants_2 = {}
+variants = ['entropy', 'me', 'gini']
+for variant in variants:
+    print('Building Decision Trees with depth 1 to 16 (variant: ', variant, ')')
+    for max_depth in range(1, 17):
+        print('Build Tree with Max Depth: ', max_depth)
+        decision_tree = DecisionTree(info_gain_variant=variant, max_depth=max_depth)
+        decision_tree.fit(bank_training_data_2, bank_attributes_2, bank_training_labels_2)
+        bank_decision_trees_2[max_depth] = copy.deepcopy(decision_tree)
+    dt_bank_variants_2[variant] = copy.deepcopy(bank_decision_trees_2)
 
 
-# Test decision trees with different max_depth on testing and training data
-bank_variants_2 = ['entropy', 'me', 'gini']
-bank_decision_trees_errors_train_2 = {}
-bank_decision_trees_errors_test_2 = {}
-for max_depth in range(1, 17):
-    print('Testing Trees with Max Depth: ', max_depth)
-    decision_tree = bank_decision_trees_2[max_depth]
-    bank_total_error_train = 0
-    bank_total_error_test = 0
+bank_restults_train_2 = {}
+bank_restults_test_2 = {}
 
-    for variant in bank_variants_2:
-        print('                         Testing Tree with Variant: ', variant)
-        decision_tree.info_gain_variant = variant
-        bank_predictions_train_2 = decision_tree.predict(bank_training_data_2, bank_attributes_2)
-        bank_predictions_test_2 = decision_tree.predict(bank_testing_data_2, bank_attributes_2)
+for variant in dt_bank_variants_2:
+    total_error_train = 0
+    total_error_test = 0
+    print('Testing Tree with Variant: ', variant)
+    for max_depth in dt_bank_variants_2[variant]:
+        print('                         Testing Tree with Max Depth: ', max_depth)
+        dt = dt_bank_variants_2[variant][max_depth]
+        prediction_train = dt.predict(bank_training_data_2, bank_attributes_2)
+        prediction_test = dt.predict(bank_testing_data_2, bank_attributes_2)
+        error_train = (prediction_train.label != bank_training_labels_2).sum() / len(bank_training_labels_2)
+        error_test = (prediction_test.label != bank_testing_labels_2).sum() / len(bank_testing_labels_2)
+        total_error_train += error_train
+        total_error_test += error_test
+    bank_restults_train_2[variant] = total_error_train / len(dt_bank_variants_2[variant])
+    bank_restults_test_2[variant] = total_error_test / len(dt_bank_variants_2[variant])
 
-        bank_error_train = (bank_predictions_train_2.label != bank_training_labels_2).sum() / len(bank_training_labels_2)
-        bank_error_test = (bank_predictions_test_2.label != bank_testing_labels_2).sum() / len(bank_testing_labels_2)
+df_bank_variants_train_2 = pd.DataFrame({'Heuristic': list(bank_restults_train_2.keys()), 'Average Error': list(bank_restults_train_2.values())})
+df_bank_variants_train_2.columns = ['Heuristic', 'Average Error (Train)']
 
-        bank_total_error_train += bank_error_train
-        bank_total_error_test += bank_error_test
-    bank_decision_trees_errors_train_2[max_depth] = bank_total_error_train / len(bank_variants_2)
-    bank_decision_trees_errors_test_2[max_depth] = bank_total_error_test / len(bank_variants_2)
+df_bank_variants_test_2 = pd.DataFrame({'Heuristic': list(bank_restults_test_2.keys()), 'Average Error': list(bank_restults_test_2.values())})
+df_bank_variants_test_2.columns = ['Heuristic', 'Average Error (Test)']
 
-
-
-# Create a dataframe with the errors
-df_bank_train_2 = pd.DataFrame({'Max Depth': list(bank_decision_trees_errors_train_2.keys()), ' Error': list(bank_decision_trees_errors_train_2.values())})
-df_bank_train_2.set_index('Max Depth', inplace=True)
-
-df_bank_test_2 = pd.DataFrame({'Max Depth': list(bank_decision_trees_errors_test_2.keys()), ' Error': list(bank_decision_trees_errors_test_2.values())})
-df_bank_test_2.set_index('Max Depth', inplace=True)
-
-print('Average Error vs Max Depth: Training')
-print(df_bank_train_2, '\n')
-print('Average Error vs Max Depth: Testing')
-print(df_bank_test_2, '\n')
+df_bank_variants_train_2['Heuristic'] = df_bank_variants_train_2['Heuristic'].replace(['entropy', 'me', 'gini'], ['Information Gain', 'Majority Error', 'Gini Index'])
+df_bank_variants_test_2['Heuristic'] = df_bank_variants_test_2['Heuristic'].replace(['entropy', 'me', 'gini'], ['Information Gain', 'Majority Error', 'Gini Index'])
 
 
-# plot_bank_train_2 = df_bank_train_2.plot(kind='bar', title='Error vs Max Depth: Training', grid=False, legend=False, xlabel='Max Depth', ylabel='Error')
-# # plot_bank_train.grid(axis='x')
+print('2. (b)')
+print('\n\n')
+print(dt_car_restults_train, '\n\n')
+print(dt_car_restults_test, '\n\n')
 
-# plot_bank_test_2 = df_bank_test_2.plot(kind='bar', title='Error vs Max Depth: Testing', grid=False, legend=False, xlabel='Max Depth', ylabel='Error')
+print('3. (a)')
+print('\n\n')
+print(dt_bank_restults_train, '\n\n')
+print(dt_bank_restults_test, '\n\n')
 
-
-
-
-
-
-
-
-
-
-
-
-
+print('3. (b)')
+print('\n\n')
+print(df_bank_variants_train_2, '\n\n')
+print(df_bank_variants_test_2, '\n\n')
 
