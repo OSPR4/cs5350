@@ -108,53 +108,26 @@ class DecisionTree:
 
     def calculate_new_weights(self, weights, vote, labels, predicted_labels): # predicted_labels in -1, 1 format
         labels = labels.to_frame()
-        # print('weights')
-        # print(weights)
-
-        #combine predicted_labels and labels
-        # combined_df = pd.concat([predicted_labels, labels], axis=1)
-        # print('predicted_labels and labels')
-        # print(combined_df.head(20))
 
         new_weights = pd.DataFrame({'weights': []})
         for i in range(0, len(labels)):
-            # print('i: ', i)
-            # print('current weight: ', weights['weights'][i])
-            # print('vote: ', vote)
-            # print('label: ', labels.iloc[i][0])
-            # print('predicted_label: ', predicted_labels.iloc[i][0])
 
             new_weights.loc[i] =  weights['weights'][i] * (np.exp((-1 * vote) * (labels.iloc[i][0] * predicted_labels.iloc[i][0])))
-            # print('new weight: ', new_weights['weights'][i])
-            # print('\n')
         
         normalization_factor = new_weights['weights'].sum()
         new_weights = new_weights.div(normalization_factor)
-        weights_array = np.array(new_weights['weights'])
-        # print('new w', weights_array)   
+        # weights_array = np.array(new_weights['weights'])
 
-        #print new weights in array format
-        # print(new_weights['weights'].head(20))
-        # print(new_weights.head(20))
         return new_weights
         
-    def boosting_tree_error(self, dt_data_set, dt_attributes, labels): #label dataframe column of label values
-        # print('boosting_tree_error')
+    def boosting_tree_error(self, dt_data_set, dt_attributes, labels):
         labels = labels.to_frame()
         predicted_labels = self.predict(dt_data_set, dt_attributes)
 
-        
-        # combined_df = pd.concat([predicted_labels, labels], axis=1)
-        # print('combined_df')
-        # print(combined_df.head(20))
         error = 0
         for i in range(0, len(predicted_labels)):
             if predicted_labels.iloc[i].values != labels.iloc[i].values:
                 error += dt_data_set.iloc[i]['weights']
-
-                # print('error i: ', i)
-                # print('error: ', error)
-        # print('\n')
 
         return error, predicted_labels
 
@@ -195,7 +168,6 @@ class DecisionTree:
             stump_root = stump[0]
             stump_vote = stump[1]
             stump_prediction = self.predict_row(row, stump_root)
-            # prediction = 1 if stump_prediction == 1 else -1
             prediction_total += (stump_vote * stump_prediction)
         return np.sign(prediction_total)
 
@@ -230,16 +202,8 @@ class DecisionTree:
     
 
     # ID3 algorithm
-    def build_tree_id3(self, data_set, attributes, labels, curr_depth, feature_size=1): #to remove label column from data_set and just just labels
-        self.current_depth = curr_depth
-        # print('current_depth: ', self.current_depth)
-        # print('labels')
-        # print(labels.head(20))
-        # label_name = ''
-        # if(self.boosting):
-        #     label_name = data_set.columns[-2]
-        # else:
-        #     label_name = data_set.columns[-1]
+    def build_tree_id3(self, data_set, attributes, labels, curr_depth, feature_size=1):
+
         if len(set(labels)) == 1: 
             similar_label = labels.iloc[0]
             return DecisionTreeNode(label=similar_label)
@@ -253,22 +217,17 @@ class DecisionTree:
             if self.random_forest:
                 random_attributes = random.sample(list(attributes.keys()), feature_size)
                 data_set_attributes = {k: attributes[k] for k in random_attributes}
-                # data_set_attributes = attributes
             else:
                 data_set_attributes = attributes
 
             best_attribute_dict = self.get_best_attribute(data_set, data_set_attributes, labels, boosting=self.boosting)
             best_attribute =  next(iter(best_attribute_dict))
-            # print('best_attribute: ', best_attribute)
             root.attribute = best_attribute
             root.info_gain = best_attribute_dict[best_attribute]
-            # print('info_gain: ', root.info_gain, '\n')
 
             if curr_depth + 1 == self.max_depth:
                 for attribute_value in attributes[best_attribute]:
-                    # print('attribute_value: ', attribute_value)
                     attribute_value_subset = data_set[data_set[best_attribute] == attribute_value]
-                    #select the rows from attribute_value_subset that match with rows from label and create a subset of labels
                     matching_rows = labels.index.isin(attribute_value_subset.index) 
                     labels_subset = labels[matching_rows]
 
@@ -282,19 +241,14 @@ class DecisionTree:
                             most_common_label = labels.value_counts().idxmax()
                         root.add_child(attribute_value, DecisionTreeNode(label=most_common_label))
                     else:
-                        # print('attribute_value_subset: ', attribute_value_subset.head())
                         most_freq_label = None
 
 
-                        # most_freq_label = attribute_value_subset[label_name].value_counts().idxmax()
                         if self.boosting:
                             most_freq_label = self.get_weighted_most_freq_label(attribute_value_subset, labels_subset)
                         else:
                             most_freq_label = labels_subset.value_counts().idxmax()
 
-                        # print('attribute_subset')
-                        # print(attribute_value_subset.head(20))
-                        # print('most_freq_label: ', most_freq_label)
                         root.add_child(attribute_value, DecisionTreeNode(label=most_freq_label))
             else:
                 for attribute_value in attributes[best_attribute]:
