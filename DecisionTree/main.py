@@ -14,7 +14,7 @@ car_attributes = {}
 column_names = []
 
 # Read the file and split it into sections
-with open('data/car-4/data-desc.txt', 'r') as file:
+with open('../data/car-4/data-desc.txt', 'r') as file:
     sections = file.read().split('|')
 
     attributes_section = sections[2].strip().split('\n')
@@ -30,8 +30,8 @@ with open('data/car-4/data-desc.txt', 'r') as file:
     column_names = column_names[1:] # Skip the first element
 
 
-car_training_data = pd.read_csv('data/car-4/train.csv', header=None, names=column_names)
-car_testing_data = pd.read_csv('data/car-4/test.csv', header=None, names=column_names)
+car_training_data = pd.read_csv('../data/car-4/train.csv', header=None, names=column_names)
+car_testing_data = pd.read_csv('../data/car-4/test.csv', header=None, names=column_names)
 
 car_training_labels = car_training_data.iloc[:, -1]
 car_testing_labels = car_testing_data.iloc[:, -1]
@@ -76,7 +76,6 @@ dt_car_restults_train.columns = ['Heuristic', 'Average Error (Train)']
 dt_car_restults_test = pd.DataFrame({'Heuristic': list(car_restults_test.keys()), 'Average Error': list(car_restults_test.values())})
 dt_car_restults_test.columns = ['Heuristic', 'Average Error (Test)']
 
-##change heuristics column names entropy -> Information Gain, me -> Majority Error, gini -> Gini Index
 dt_car_restults_train['Heuristic'] = dt_car_restults_train['Heuristic'].replace(['entropy', 'me', 'gini'], ['Information Gain', 'Majority Error', 'Gini Index'])
 
 dt_car_restults_test['Heuristic'] = dt_car_restults_test['Heuristic'].replace(['entropy', 'me', 'gini'], ['Information Gain', 'Majority Error', 'Gini Index'])
@@ -110,8 +109,8 @@ bank_attributes = {
 }
 
 
-bank_training_data = pd.read_csv('data/bank-4/train.csv', names=bank_column_names)
-bank_testing_data = pd.read_csv('data/bank-4/test.csv', names=bank_column_names)
+bank_training_data = pd.read_csv('../data/bank-4/train.csv', names=bank_column_names)
+bank_testing_data = pd.read_csv('../data/bank-4/test.csv', names=bank_column_names)
 bank_training_labels = bank_training_data.iloc[:, -1]
 bank_testing_labels = bank_testing_data.iloc[:, -1]
 
