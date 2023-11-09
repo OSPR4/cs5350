@@ -182,3 +182,53 @@ prediction = dt.predict(test_data, attributes, num_trees=10)
 error = (prediction.label != y_train).sum() / len(y_train)
 
 ```
+
+Using Regression
+
+```python
+
+from linear_regression import LinearRegression
+import numpy as np
+
+
+# Load the data from a file
+X_training = np.genfromtxt('../data/train.csv', delimiter=',')
+y_training = X_training[:, -1]
+X_training = np.insert(X_training, 0, 1, axis=1)
+X_training = X_training[:, :-1]
+
+#gradient descent variant can be 'batch', 'stochastic', tol is the tolerance for the stopping condition
+regression = LinearRegression(grad_variant='batch', r=0.01, max_iter=float("inf"), tol=1e-6)
+regression.fit(X_training, y_training)
+prediction = regression.predict(X_training)
+weights = regression.get_weights()
+
+```
+
+Using Perceptron
+
+```python
+
+from perceptron import Perceptron
+import numpy as np
+
+X_training = np.genfromtxt('data/train.csv', delimiter=',')
+X_test = np.genfromtxt('data/test.csv', delimiter=',')
+y_training = X_training[:, -1]
+y_test = X_test[:, -1]
+y_training[y_training == 0] = -1
+y_test[y_test == 0] = -1
+
+X_training = np.insert(X_training, 0, 1, axis=1)
+X_test = np.insert(X_test, 0, 1, axis=1)
+
+X_training = X_training[:, :-1]
+X_test = X_test[:, :-1]
+
+#variant can be 'standard', 'voted', 'average', r is the learning rate, epoch represents the number of iterations
+clf = Perceptron(variant='standard', epoch=1, r=0.01)
+clf.fit(X_training, y_training)
+y_predicted = clf.predict(X_test)
+
+
+```
