@@ -74,14 +74,15 @@ class SVM:
         K = np.exp(-pairwise_distances / (self.r))
         return K
     
-    def _get_bias(self, alpha, X, y):
-        # support vectors (alphas > 0)
-        support_vectors_indices = np.where(alpha > 0)[0]
-        j = support_vectors_indices[0]
-        # b = np.mean([y[j] - np.sum(alphas[support_vectors_indices] * y[support_vectors_indices] * np.array([kernel(X[i], X[j]) for i in support_vectors_indices])) for j in support_vectors_indices])
+    def _get_bias(self):
+        bias = 0
+        for i in range(len(self.support_alphas)):
+            p = 0
+            for j in range(len(self.support_alphas)):
+                p += (self.support_alphas[j] * self.support_labels[j] * self.gaussian_kernel(self.support_vectors[j], self.support_vectors[i]))
+            bias += self.support_labels[i] - p
 
-        b = y[j] - np.sum(alpha[support_vectors_indices] * y[support_vectors_indices] * np.array([self.gaussian_kernel(X[i], X[j]) for i in support_vectors_indices]))
-        return b
+        return bias / len(self.support_alphas)
 
     def _dual_obj_fun(self, X, y):
         K = None
@@ -131,14 +132,11 @@ class SVM:
             
         elif self.kernel == 'gaussian':
             self.alpha = optimal_alpha
-            self.b = self._get_bias(self.alpha, X, y)
             sv_indices = np.where(optimal_alpha > 0)[0]
             self.support_vectors = X[sv_indices]
             self.support_labels = y[sv_indices]
-            print("Number of support vectors: ", len(self.support_vectors))
-            print("Support vectors: ", self.support_vectors)
-            self.y = y
-            self.X = X
+            self.support_alphas = optimal_alpha[sv_indices]
+            self.b = self._get_bias()
 
     def get_support_vectors(self):
         return self.support_vectors
@@ -164,13 +162,20 @@ class SVM:
         if self.kernel == 'linear':
             return np.sign(np.dot(X, self.w.T) + self.b)
         elif self.kernel == 'gaussian':
-            predictions = []
+            # predictions = []
+            # for x in X:
+            #     prediction = 0
+            #     for i in range(len(self.support_vectors)):
+            #         prediction += (self.alpha[i] * self.support_labels[i] * self.gaussian_kernel(self.support_vectors[i], x)) 
+            #     predictions.append(prediction + self.b)
+            y_pred = []
             for x in X:
-                prediction = 0
-                for i in range(len(self.support_vectors)):
-                    prediction += (self.alpha[i] * self.support_labels[i] * self.gaussian_kernel(self.support_vectors[i], x)) + self.b
-                predictions.append(prediction)
-            return np.sign(predictions)
+                yi_pred = 0
+                for i in range(len(self.support_alphas)):
+                    yi_pred += self.support_alphas[i] * self.support_labels[i] * self.gaussian_kernel(self.support_vectors[i], x)
+                y_pred.append(yi_pred + self.b)
+            y_pred = np.array(y_pred)
+            return np.sign(y_pred)
         else:
             raise ValueError("Kernel not recognized")
     

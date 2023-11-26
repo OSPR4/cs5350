@@ -232,3 +232,54 @@ y_predicted = clf.predict(X_test)
 
 
 ```
+
+Using svm
+
+```python
+from svm import SVM
+
+y_training = X_training[:, -1]
+y_test = X_test[:, -1]
+
+y_training[y_training == 0] = -1
+y_test[y_test == 0] = -1
+
+X_training = np.insert(X_training, 0, 1, axis=1)
+X_test = np.insert(X_test, 0, 1, axis=1)
+
+X_training = X_training[:, :-1]
+X_test = X_test[:, :-1]
+
+epoch = 100
+r = 0.01
+a = 0.01
+default_schedule = True
+
+clf = SVM(epoch=epoch, r=r, a=a, default_schedule=default_schedule)
+clf.fit(X_training, y_training)
+y_predicted = clf.predict(X_test)
+
+error = (y_predicted != y_test).sum() / len(y_test)
+
+# dual
+X_training = np.genfromtxt('../data/bank-note/train.csv', delimiter=',')
+X_test = np.genfromtxt('../data/bank-note/test.csv', delimiter=',')
+y_training = X_training[:, -1]
+y_test = X_test[:, -1]
+y_training[y_training == 0] = -1
+y_test[y_test == 0] = -1
+
+X_training = X_training[:, :-1]
+X_test = X_test[:, :-1]
+
+C = 1
+
+#variant='primal' | 'dual, C=1, a=0.01, r=0.01, epoch=10, tol=1e-6, default_schedule=True | 'false', kernel='linear' | 'gaussian'
+svm_dual = SVM(variant='dual', C=C_dual[i])
+svm_dual.fit(X_training, y_training)
+
+y_predicted = svm_dual.predict(X_test)
+
+error = (y_predicted != y_test).sum() / len(y_test)
+
+```
